@@ -64,3 +64,36 @@ function joinRoom(socket, room) {
     socket.emit('message', {text: usersInRoomSummary})
   }
 }
+
+// 更换用户名
+function handleNameChangeAttempts(socket, nickNames, namesUsed) {
+  socket.on('nameAttempt', function (name) {
+    if (name.indexOf('Guest') == 0) {
+      socket.emit('nameResult', {
+        success: false,
+        message: 'Names cannot begin with "Guest".'
+      })
+    } else {
+      if (namesUsed.indexOf(name) == -1) {
+        let previousName = nickNames[socket.id]
+        let previousNameIndex = namesUsed.indexOf(previousName)
+        namesUsed.push(name)
+        nickNames[socket.id] = name
+        delete namesUsed[previousNameIndex]
+        socket.emit('nameResult', {
+          success: true,
+          name: name
+        })
+
+        socket.broadcast.to(currentRoom[socket.id]).emit('message', {
+          text: previousName + ' is now known as ' + name + '.'
+        })
+      } else {
+        socket.emit('nameResult', {
+          success: false,
+          message: 'That name is already in use.'
+        })
+      }
+    }
+  })
+}
