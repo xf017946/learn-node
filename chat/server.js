@@ -1,6 +1,6 @@
 const http = require('http')
 const fs = require('fs')
-const Path = require('path')
+const path = require('path')
 const mime = require('mime')
 
 let cache = {}
@@ -12,10 +12,9 @@ function send404(res) {
 }
 
 function sendFile(res, filePath, fileContents) {
-  console.log('Path.basename(filePath)', Path.basename(filePath))
   res.writeHead(
     200,
-    {"content-type": mime.getType(Path.basename(filePath))}
+    {"content-type": mime.lookup(path.basename(filePath))}
   )
 
   res.end(fileContents)
@@ -25,9 +24,9 @@ function serveStatic(res, cache, absPath) {
   if (cache[absPath]) {
     sendFile(res, absPath, cache[absPath])
   } else {
-    fs.access(Path.resolve(__dirname, absPath), fs.constants.F_OK, function (errs) {
+    fs.access(path.resolve(__dirname, absPath), fs.constants.F_OK, function (errs) {
       if (!errs) {
-        fs.readFile(Path.resolve(__dirname, absPath), function (err, data) {
+        fs.readFile(path.resolve(__dirname, absPath), function (err, data) {
           if (err) {
             send404(res)
           } else {
@@ -54,6 +53,9 @@ const server = http.createServer(function (req, res) {
   let absPath = './' + filePath
   serveStatic(res, cache, absPath)
 })
+
+const chatServer = require('./lib/chat_server')
+chatServer.listen(server)
 
 server.listen(3000, function () {
   console.log("Server listening on port 3000.")

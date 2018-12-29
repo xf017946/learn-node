@@ -7,7 +7,6 @@ let io,
 
 exports.listen = function (server) {
   io = socketio.listen(server)
-  io.set('log level', 1)
 
   io.sockets.on('connection', function (socket) {
     // 分配昵称
@@ -60,7 +59,7 @@ function joinRoom(socket, room) {
       socket.emit('message', { text: usersInRoomSummary })
     }
 
-    usersInRoomSummay += '.'
+    usersInRoomSummary += '.'
     socket.emit('message', {text: usersInRoomSummary})
   }
 }
@@ -95,5 +94,31 @@ function handleNameChangeAttempts(socket, nickNames, namesUsed) {
         })
       }
     }
+  })
+}
+
+// 发送聊天消息
+function handleMessageBroadcasting(socket) {
+  socket.on('message', function (message) {
+    socket.broadcast.to(message.room).emit('message', {
+      text: nickNames[socket.id] + ': ' + message.text
+    })
+  })
+}
+
+// 创建房间
+function handleRoomJoining(socket) {
+  socket.on('join', function (room) {
+    socket.leave(currentRoom[socket.id])
+    joinRoom(socket, room.newRoom)
+  })
+}
+
+// 用户断开连接
+function handleClientDisconnection(socket) {
+  socket.on('disconnect', function () {
+    let nameIndex = namesUsed.indexOf(nickNames[socket.id])
+    delete namesUsed[nameIndex]
+    delete nickNames[socket.id]
   })
 }
