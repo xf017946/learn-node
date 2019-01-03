@@ -27,25 +27,44 @@ channel.clients = {}
 channel.subscriptions = {}
 
 channel.on('join', function (id, client) {
+  console.log('in join')
   this.clients[id] = client
   this.subscriptions[id] = function (senderId, message) {
-    if (id != senderId) {
-      this.clients[id].write(message)
-    }
+    console.log('in broadcast')
+    // if (id != senderId) {
+    //   this.clients[id].write(message)
+    // }
+    this.clients[id].write(message)
   }
   this.on('broadcast', this.subscriptions[id])
 })
 
 let server = net.createServer(function (client) {
   let id = client.remoteAddress + ':' + client.remotePort
-  client.on('connect', function () {
-    channel.emit('join', id, client)
+  // console.log(client, 'client')
+  // client.on('connect', function () {
+  //   console.log('emit join')
+  //   channel.emit('join', id, client)
+  // })
+  channel.emit('join', id, client)
+
+  client.on('close', function () {
+    channel.emit('leave', id)
   })
 
   client.on('data', function (data) {
     data = data.toString()
+    console.log('emit broadcast')
     channel.emit('broadcast', id, data)
   })
+})
+
+channel.on('leave', function (id) {
+  console.log('in leave')
+  channel.removeListener('broadcast', this.subscriptions[id])
+  console.log('after remove')
+  let testb = channel.emit('broadcast', id, id + " has left the chat.\n")
+  console.log('textb', testb)
 })
 
 server.listen(8888)
